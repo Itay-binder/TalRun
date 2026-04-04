@@ -15,6 +15,7 @@ class PlanWorkoutEntry {
     required this.completed,
     required this.kind,
     this.detail,
+    this.completedActivityId,
   });
 
   final String dayLabel;
@@ -22,6 +23,9 @@ class PlanWorkoutEntry {
   final bool completed;
   final WorkoutKind kind;
   final String? detail;
+
+  /// כשהאימון סומן כבוצע ויש רשומת פעילות בדמו — ניווט ל־`/workout/{id}` של הפעילות.
+  final String? completedActivityId;
 }
 
 class PlanWeekData {
@@ -62,6 +66,39 @@ List<PlanWeekData> buildDemoPlanWeeks() {
   );
 }
 
+/// מזהה נתיב לאימון בתכנית: `plan-{מספר_שבוע}-{אינדקס_בשבוע}` (אינדקס מ־0).
+String planWorkoutRouteId(int weekIndex1Based, int workoutIndex0Based) =>
+    'plan-$weekIndex1Based-$workoutIndex0Based';
+
+final RegExp _planRouteRe = RegExp(r'^plan-(\d+)-(\d+)$');
+
+/// מחזיר שבוע, אינדקס אימון ורשומה — או null אם המזהה לא תואם.
+({
+  int weekIndex,
+  int workoutIndex,
+  PlanWorkoutEntry entry,
+  PlanWeekData week,
+})? tryParsePlanWorkoutRouteId(String id) {
+  final m = _planRouteRe.firstMatch(id);
+  if (m == null) return null;
+  final w = int.parse(m.group(1)!);
+  final idx = int.parse(m.group(2)!);
+  PlanWeekData? week;
+  for (final pw in buildDemoPlanWeeks()) {
+    if (pw.weekIndex == w) {
+      week = pw;
+      break;
+    }
+  }
+  if (week == null || idx < 0 || idx >= week.workouts.length) return null;
+  return (
+    weekIndex: w,
+    workoutIndex: idx,
+    entry: week.workouts[idx],
+    week: week,
+  );
+}
+
 double _kmDoneForWeek(int w) {
   return switch (w) {
     1 => 5.5,
@@ -89,12 +126,14 @@ List<PlanWorkoutEntry> _workoutsForWeek(int w) {
           completed: true,
           kind: WorkoutKind.run,
           detail: '5 ק״מ',
+          completedActivityId: 'a2',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ג׳',
           title: 'רגליים וליבה',
           completed: true,
           kind: WorkoutKind.strength,
+          completedActivityId: 'a3',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ו׳',
@@ -116,12 +155,14 @@ List<PlanWorkoutEntry> _workoutsForWeek(int w) {
           title: 'אינטרוולים',
           completed: true,
           kind: WorkoutKind.run,
+          completedActivityId: 'a1',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ד׳',
           title: 'ריצה קלה',
           completed: true,
           kind: WorkoutKind.run,
+          completedActivityId: 'a2',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ו׳',
@@ -143,12 +184,14 @@ List<PlanWorkoutEntry> _workoutsForWeek(int w) {
           completed: true,
           kind: WorkoutKind.run,
           detail: '6 ק״מ',
+          completedActivityId: 'a1',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ד׳',
           title: 'ריצה קלה',
           completed: true,
           kind: WorkoutKind.run,
+          completedActivityId: 'a2',
         ),
         const PlanWorkoutEntry(
           dayLabel: 'יום ו׳',

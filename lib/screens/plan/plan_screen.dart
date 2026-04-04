@@ -556,7 +556,15 @@ class _PlanWeekCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: Column(
                   children: week.workouts
-                      .map((e) => _WorkoutLine(entry: e))
+                      .asMap()
+                      .entries
+                      .map(
+                        (me) => _WorkoutLine(
+                          weekIndex: week.weekIndex,
+                          workoutIndex: me.key,
+                          entry: me.value,
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -567,41 +575,73 @@ class _PlanWeekCard extends StatelessWidget {
 }
 
 class _WorkoutLine extends StatelessWidget {
-  const _WorkoutLine({required this.entry});
+  const _WorkoutLine({
+    required this.weekIndex,
+    required this.workoutIndex,
+    required this.entry,
+  });
 
+  final int weekIndex;
+  final int workoutIndex;
   final PlanWorkoutEntry entry;
+
+  void _openDetail(BuildContext context) {
+    final e = entry;
+    if (e.completed && e.completedActivityId != null) {
+      context.push('/workout/${e.completedActivityId}');
+    } else {
+      context.push('/workout/${planWorkoutRouteId(weekIndex, workoutIndex)}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            entry.completed ? Icons.check_circle : Icons.crop_square,
-            size: 20,
-            color: entry.completed ? entry.kind.color : Colors.grey.shade400,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openDetail(context),
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${entry.dayLabel}: ${entry.title}',
-                  style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                Icon(
+                  entry.completed ? Icons.check_circle : Icons.crop_square,
+                  size: 20,
+                  color: entry.completed
+                      ? entry.kind.color
+                      : Colors.grey.shade400,
                 ),
-                if (entry.detail != null && entry.detail!.isNotEmpty)
-                  Text(
-                    entry.detail!,
-                    style: t.bodySmall?.copyWith(color: Colors.black45),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${entry.dayLabel}: ${entry.title}',
+                        style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      if (entry.detail != null && entry.detail!.isNotEmpty)
+                        Text(
+                          entry.detail!,
+                          style: t.bodySmall?.copyWith(color: Colors.black45),
+                        ),
+                    ],
                   ),
+                ),
+                Icon(
+                  Icons.chevron_left,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

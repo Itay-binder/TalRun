@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:talrun/data/calendar_workout_routes.dart';
 import 'package:talrun/data/demo_trainee_plan.dart';
 import 'package:talrun/state/app_state.dart';
 import 'package:talrun/state/user_role.dart';
@@ -111,39 +112,24 @@ class _TraineeDragCalendarState extends State<_TraineeDragCalendar> {
   @override
   void initState() {
     super.initState();
-    final initial = _buildInitialWeek();
+    final routes = buildCalendarWorkoutRoutes();
+    final initial = routes.byDay
+        .map(
+          (dayList) => dayList
+              .map(
+                (s) => _CalendarWorkoutItem(
+                  id: s.id,
+                  title: s.title,
+                  subtitle: s.subtitle,
+                  kind: s.kind,
+                ),
+              )
+              .toList(),
+        )
+        .toList();
     _initialSnapshot =
         List.generate(7, (i) => List<_CalendarWorkoutItem>.from(initial[i]));
     _byDay = List.generate(7, (i) => List<_CalendarWorkoutItem>.from(initial[i]));
-  }
-
-  /// מילוי התחלתי מהדמו + אימון נוסף ביום שני (כמו במקורות UI).
-  List<List<_CalendarWorkoutItem>> _buildInitialWeek() {
-    final lists = List<List<_CalendarWorkoutItem>>.generate(7, (_) => []);
-    var n = 0;
-    for (var i = 0; i < 7; i++) {
-      final slot = demoSlotBySunDay[i];
-      if (slot != null) {
-        lists[i].add(
-          _CalendarWorkoutItem(
-            id: 'w$n',
-            title: slot.title,
-            subtitle: slot.subtitle,
-            kind: slot.kind,
-          ),
-        );
-        n++;
-      }
-    }
-    lists[1].add(
-      _CalendarWorkoutItem(
-        id: 'w$n',
-        title: 'כוח עליון',
-        subtitle: '40 דק׳',
-        kind: WorkoutKind.strength,
-      ),
-    );
-    return lists;
   }
 
   void _resetWeek() {
@@ -211,8 +197,7 @@ class _TraineeDragCalendarState extends State<_TraineeDragCalendar> {
                     startOfLocalDay(now),
                 items: _byDay[i],
                 onAccept: (item) => _moveToDay(item, i),
-                onCardTap: (item) =>
-                    context.push('/workout/${item.title.hashCode}'),
+                onCardTap: (item) => context.push('/workout/${item.id}'),
               ),
           ],
         ),
