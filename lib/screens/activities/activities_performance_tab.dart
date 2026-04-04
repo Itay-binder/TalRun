@@ -105,7 +105,7 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   maxY: maxKm,
-                  barTouchData: const BarTouchData(enabled: false),
+                  barTouchData: BarTouchData(enabled: false),
                   titlesData: FlTitlesData(
                     show: true,
                     bottomTitles: AxisTitles(

@@ -43,7 +43,8 @@ dependencies:
   provider: ^6.1.5+1
   shared_preferences: ^2.5.3
   intl: ^0.20.2
-  fl_chart: ^1.1.0
+  # 1.1.x דורש Flutter חדש יותר (Matrix4.translateByDouble); 0.69 תואם stable נוכחי.
+  fl_chart: ^0.69.2
 
 dev_dependencies:
   flutter_test:
