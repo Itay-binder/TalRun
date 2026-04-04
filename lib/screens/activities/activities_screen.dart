@@ -16,7 +16,7 @@ class ActivitiesScreen extends StatelessWidget {
     if (app.role == UserRole.coach) {
       return const _CoachActivitiesBody();
     }
-    return const _TraineeActivitiesBody();
+    return _TraineeActivitiesBody();
   }
 }
 
@@ -46,10 +46,9 @@ class _CoachActivitiesBody extends StatelessWidget {
 }
 
 class _TraineeActivitiesBody extends StatelessWidget {
-  const _TraineeActivitiesBody();
-
   @override
   Widget build(BuildContext context) {
+    final hasPlan = context.watch<AppState>().hasActivePlan;
     final user = FirebaseAuth.instance.currentUser;
     final t = Theme.of(context).textTheme;
 
@@ -124,11 +123,11 @@ class _TraineeActivitiesBody extends StatelessWidget {
                   Tab(text: 'ביצועים'),
                 ],
               ),
-              const Expanded(
+              Expanded(
                 child: TabBarView(
                   children: [
-                    ActivitiesWorkoutsTab(),
-                    ActivitiesPerformanceTab(),
+                    ActivitiesWorkoutsTab(hasActivePlan: hasPlan),
+                    ActivitiesPerformanceTab(hasActivePlan: hasPlan),
                   ],
                 ),
               ),

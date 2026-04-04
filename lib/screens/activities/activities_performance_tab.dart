@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:talrun/data/activities_demo.dart';
 
 class ActivitiesPerformanceTab extends StatefulWidget {
-  const ActivitiesPerformanceTab({super.key});
+  const ActivitiesPerformanceTab({super.key, required this.hasActivePlan});
+
+  final bool hasActivePlan;
 
   @override
   State<ActivitiesPerformanceTab> createState() =>
@@ -23,6 +25,25 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+
+    if (!widget.hasActivePlan) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        children: [
+          Text(
+            'אין תכנית פעילה',
+            style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'גרפים, סיכומי נפח, שיאים אישיים ומירוצים יוצגו כאן כשיהיו נתונים אמיתיים '
+            'מתכנית או ממכשיר מחובר. כרגע המצב «בלי תכנית» מסתיר את נתוני הדמו.',
+            style: t.bodyMedium?.copyWith(color: Colors.black54, height: 1.4),
+          ),
+        ],
+      );
+    }
+
     final summary = _viewBy == 'שבוע'
         ? demoCurrentWeekSummary()
         : demoCurrentMonthSummary();

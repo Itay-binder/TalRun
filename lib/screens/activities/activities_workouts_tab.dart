@@ -4,10 +4,48 @@ import 'package:intl/intl.dart';
 import 'package:talrun/data/activities_demo.dart';
 
 class ActivitiesWorkoutsTab extends StatelessWidget {
-  const ActivitiesWorkoutsTab({super.key});
+  const ActivitiesWorkoutsTab({super.key, required this.hasActivePlan});
+
+  /// בלי תכנית פעילה לא מציגים דמו — רק הודעה (פעילות ידנית עדיין זמינה מ־+).
+  final bool hasActivePlan;
 
   @override
   Widget build(BuildContext context) {
+    if (!hasActivePlan) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'אין תכנית פעילה',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'כשתתחילו תכנית — אימונים ופעילויות שמקושרות אליה יוצגו כאן. '
+                'בינתיים אפשר להוסיף פעילות ידנית בכפתור + למעלה.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.black54,
+                      height: 1.4,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => context.push('/plan'),
+                child: const Text('מעבר למסך התכנית'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final activities = demoActivitiesList();
     final grouped = _groupByMonth(activities);
 
