@@ -42,35 +42,93 @@ Future<void> main() async {
     return;
   }
 
-  try {
-    await initializeDateFormatting('he_IL');
-    final appState = AppState();
-    await appState.load();
-    await Firebase.initializeApp();
-    // Provider עוטף את כל האפליקציה — נדרש למאמן/מתאמן ולמצב תכנית.
-    runApp(
-      ChangeNotifierProvider<AppState>.value(
-        value: appState,
-        child: const TalRunApp(),
-      ),
-    );
-  } catch (e, st) {
-    debugPrint('TalRun startup failed: $e\n$st');
-    runApp(
-      MaterialApp(
-        home: Scaffold(
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: SelectableText(
-                  'שגיאת אתחול האפליקציה:\n\n$e\n\n'
-                  '(אם זה Firebase — ודאו google-services.json וחיבור רשת)',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(height: 1.35),
+  // runApp מיד — כדי שלא "יתקעו" על לוגו Flutter בזמן Firebase / SharedPreferences.
+  runApp(const _StartupShell());
+}
+
+/// מסך טעינה קל, ואז מעבר ל־TalRunApp אחרי אתחול שירותים.
+class _StartupShell extends StatefulWidget {
+  const _StartupShell();
+
+  @override
+  State<_StartupShell> createState() => _StartupShellState();
+}
+
+class _StartupShellState extends State<_StartupShell> {
+  @override
+  void initState() {
+    super.initState();
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    try {
+      await initializeDateFormatting('he_IL');
+      final appState = AppState();
+      await appState.load();
+      await Firebase.initializeApp();
+      if (!mounted) return;
+      runApp(
+        ChangeNotifierProvider<AppState>.value(
+          value: appState,
+          child: const TalRunApp(),
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('TalRun startup failed: $e\n$st');
+      if (!mounted) return;
+      runApp(
+        MaterialApp(
+          home: Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: SelectableText(
+                    'שגיאת אתחול האפליקציה:\n\n$e\n\n'
+                    '(אם זה Firebase — ודאו google-services.json וחיבור רשת)',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(height: 1.35),
+                  ),
                 ),
               ),
             ),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFFE8F4FC),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'TalRun',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                width: 36,
+                height: 36,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'טוען…',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.black54,
+                    ),
+              ),
+            ],
           ),
         ),
       ),
