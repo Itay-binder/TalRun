@@ -6,6 +6,8 @@ import 'package:talrun/screens/activities/activities_screen.dart';
 import 'package:talrun/screens/auth/sign_in_screen.dart';
 import 'package:talrun/screens/calendar/training_calendar_screen.dart';
 import 'package:talrun/screens/community/community_screen.dart';
+import 'package:talrun/screens/integrations/connected_apps_screen.dart';
+import 'package:talrun/screens/pace/pace_insights_screen.dart';
 import 'package:talrun/screens/plan/plan_screen.dart';
 import 'package:talrun/screens/settings/settings_screen.dart';
 import 'package:talrun/screens/shell/main_shell.dart';
@@ -83,6 +85,16 @@ GoRouter createAppRouter() {
         path: '/calendar',
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const TrainingCalendarScreen(),
+      ),
+      GoRoute(
+        path: '/integrations',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const ConnectedAppsScreen(),
+      ),
+      GoRoute(
+        path: '/pace-insights',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const PaceInsightsScreen(),
       ),
       GoRoute(
         path: '/settings',
