@@ -1,0 +1,18 @@
+TalRun — הכנה לפני הרצה
+========================
+
+1) העתק את google-services.json מה-Firebase לתיקייה:
+   android/app/google-services.json
+
+2) ב-Firebase → Project settings → Android app:
+   הוסף SHA-1 של debug (נדרש ל-Google Sign-In).
+   Android Studio: Gradle → signingReport
+   או: keytool -list -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+
+3) חיבור ל-GitHub (פעם אחת):
+   git init
+   git add .
+   git commit -m "Initial TalRun skeleton"
+   git remote add origin <כתובת-הריפו>
+   git branch -M main
+   git push -u origin main
