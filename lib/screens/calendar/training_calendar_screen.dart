@@ -78,29 +78,86 @@ class TrainingCalendarScreen extends StatelessWidget {
       );
     }
 
+    return const _TraineeDragCalendar();
+  }
+}
+
+/// לוח שבועי עם גרירה בין ימים; שמירה = עדכון state מקומי (מוכן ל-Firestore).
+class _TraineeDragCalendar extends StatefulWidget {
+  const _TraineeDragCalendar();
+
+  @override
+  State<_TraineeDragCalendar> createState() => _TraineeDragCalendarState();
+}
+
+class _TraineeDragCalendarState extends State<_TraineeDragCalendar> {
+  late List<List<_CalendarWorkoutItem>> _byDay;
+  late List<List<_CalendarWorkoutItem>> _initialSnapshot;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = _buildInitialWeek();
+    _initialSnapshot =
+        List.generate(7, (i) => List<_CalendarWorkoutItem>.from(initial[i]));
+    _byDay = List.generate(7, (i) => List<_CalendarWorkoutItem>.from(initial[i]));
+  }
+
+  /// מילוי התחלתי מהדמו + אימון נוסף ביום שני (כמו במקורות UI).
+  List<List<_CalendarWorkoutItem>> _buildInitialWeek() {
+    final lists = List<List<_CalendarWorkoutItem>>.generate(7, (_) => []);
+    var n = 0;
+    for (var i = 0; i < 7; i++) {
+      final slot = demoSlotBySunDay[i];
+      if (slot != null) {
+        lists[i].add(
+          _CalendarWorkoutItem(
+            id: 'w$n',
+            title: slot.title,
+            subtitle: slot.subtitle,
+            kind: slot.kind,
+          ),
+        );
+        n++;
+      }
+    }
+    lists[1].add(
+      _CalendarWorkoutItem(
+        id: 'w$n',
+        title: 'כוח עליון',
+        subtitle: '40 דק׳',
+        kind: WorkoutKind.strength,
+      ),
+    );
+    return lists;
+  }
+
+  void _resetWeek() {
+    setState(() {
+      _byDay = List.generate(
+        7,
+        (i) => List<_CalendarWorkoutItem>.from(_initialSnapshot[i]),
+      );
+    });
+  }
+
+  void _moveToDay(_CalendarWorkoutItem item, int targetDayIndex) {
+    setState(() {
+      for (final list in _byDay) {
+        list.removeWhere((e) => e.id == item.id);
+      }
+      _byDay[targetDayIndex].add(item);
+    });
+    // כאן בעתיד: שמירה ל-Firestore / שרת
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final now = DateTime.now();
     final weekStart = startOfWeekSunday(now);
     final weekEnd = weekStart.add(const Duration(days: 6));
     final rangeLabel =
         '${DateFormat.MMMd('he_IL').format(weekStart)} – ${DateFormat.MMMd('he_IL').format(weekEnd)}';
-
-    final dayRows = List<Widget>.generate(7, (i) {
-      final day = weekStart.add(Duration(days: i));
-      final isToday = startOfLocalDay(day) == startOfLocalDay(now);
-      final slot = demoSlotBySunDay[i];
-      final workouts = slot == null
-          ? <_WorkoutCardData>[]
-          : [
-              _WorkoutCardData(slot.title, slot.subtitle, slot.kind),
-            ];
-
-      return _DayRow(
-        dayLabel: kHebrewWeekdayShort[i],
-        dayNum: day.day,
-        highlight: isToday,
-        workouts: workouts,
-      );
-    });
 
     return Scaffold(
       appBar: AppBar(
@@ -109,51 +166,73 @@ class TrainingCalendarScreen extends StatelessWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text('לוח אימונים'),
-        actions: [
-          TextButton(
-            onPressed: () {},
-            child: const Text('שמור'),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _WeekBlock(
+          _WeekHeader(
             rangeLabel: rangeLabel,
             weekLabel: 'שבוע $demoWeekCurrent',
             totalDone: '16.7 ק״מ',
             totalGoal: '19.5 ק״מ',
-            days: dayRows,
+            onReset: _resetWeek,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
           Text(
-            'גרירה לשינוי ימים — יתווסף בשלב הבא',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.black45,
-                ),
+            'לחיצה ארוכה על כרטיס אימון ואז גרירה ליום אחר. השינוי נשמר מיד במסך '
+            '(בהמשך: סנכרון לענן).',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.black45),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 16),
+          for (var i = 0; i < 7; i++)
+            _DayDropRow(
+              dayLabel: kHebrewWeekdayShort[i],
+              dayNum: weekStart.add(Duration(days: i)).day,
+              highlight: startOfLocalDay(weekStart.add(Duration(days: i))) ==
+                  startOfLocalDay(now),
+              items: _byDay[i],
+              onAccept: (item) => _moveToDay(item, i),
+              onCardTap: (item) =>
+                  context.push('/workout/${item.title.hashCode}'),
+            ),
         ],
       ),
     );
   }
 }
 
-class _WeekBlock extends StatelessWidget {
-  const _WeekBlock({
+class _CalendarWorkoutItem {
+  const _CalendarWorkoutItem({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.kind,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final WorkoutKind kind;
+}
+
+class _WeekHeader extends StatelessWidget {
+  const _WeekHeader({
     required this.rangeLabel,
     required this.weekLabel,
     required this.totalDone,
     required this.totalGoal,
-    required this.days,
+    required this.onReset,
   });
 
   final String rangeLabel;
   final String weekLabel;
   final String totalDone;
   final String totalGoal;
-  final List<Widget> days;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +256,9 @@ class _WeekBlock extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black,
                           borderRadius: BorderRadius.circular(20),
@@ -196,38 +277,42 @@ class _WeekBlock extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'סה״כ: $totalDone / $totalGoal',
-                    style:
-                        const TextStyle(color: Colors.black54, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
             TextButton.icon(
-              onPressed: () {},
+              onPressed: onReset,
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('איפוס'),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        ...days,
       ],
     );
   }
 }
 
-class _DayRow extends StatelessWidget {
-  const _DayRow({
+class _DayDropRow extends StatelessWidget {
+  const _DayDropRow({
     required this.dayLabel,
     required this.dayNum,
-    this.highlight = false,
-    required this.workouts,
+    required this.highlight,
+    required this.items,
+    required this.onAccept,
+    required this.onCardTap,
   });
 
   final String dayLabel;
   final int dayNum;
   final bool highlight;
-  final List<_WorkoutCardData> workouts;
+  final List<_CalendarWorkoutItem> items;
+  final void Function(_CalendarWorkoutItem item) onAccept;
+  final void Function(_CalendarWorkoutItem item) onCardTap;
 
   @override
   Widget build(BuildContext context) {
@@ -265,32 +350,61 @@ class _DayRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Column(
-              children: workouts.isEmpty
-                  ? [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'יום מנוחה',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 13,
+            child: DragTarget<_CalendarWorkoutItem>(
+              onWillAcceptWithDetails: (_) => true,
+              onAcceptWithDetails: (details) => onAccept(details.data),
+              builder: (context, candidate, rejected) {
+                final hovering = candidate.isNotEmpty;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  constraints: const BoxConstraints(minHeight: 56),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hovering
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    color: hovering
+                        ? Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.06)
+                        : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (items.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            hovering
+                                ? 'שחרר כאן'
+                                : 'יום מנוחה — גרור לכאן אימון',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 13,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      else
+                        ...items.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _DraggableWorkoutCard(
+                              item: item,
+                              onTap: () => onCardTap(item),
+                            ),
                           ),
                         ),
-                      ),
-                    ]
-                  : workouts
-                      .map(
-                        (w) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _WorkoutCard(
-                            data: w,
-                            onTap: () => context
-                                .push('/workout/${w.title.hashCode}'),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -299,18 +413,60 @@ class _DayRow extends StatelessWidget {
   }
 }
 
-class _WorkoutCardData {
-  const _WorkoutCardData(this.title, this.subtitle, this.kind);
+class _DraggableWorkoutCard extends StatelessWidget {
+  const _DraggableWorkoutCard({
+    required this.item,
+    required this.onTap,
+  });
+
+  final _CalendarWorkoutItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = _WorkoutCardShell(
+      title: item.title,
+      subtitle: item.subtitle,
+      kind: item.kind,
+      onTap: onTap,
+    );
+
+    return LongPressDraggable<_CalendarWorkoutItem>(
+      data: item,
+      hapticFeedbackOnStart: true,
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(12),
+        child: Opacity(
+          opacity: 0.95,
+          child: SizedBox(
+            width: MediaQuery.sizeOf(context).width * 0.72,
+            child: _WorkoutCardShell(
+              title: item.title,
+              subtitle: item.subtitle,
+              kind: item.kind,
+              onTap: () {},
+            ),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: card),
+      child: card,
+    );
+  }
+}
+
+class _WorkoutCardShell extends StatelessWidget {
+  const _WorkoutCardShell({
+    required this.title,
+    required this.subtitle,
+    required this.kind,
+    required this.onTap,
+  });
 
   final String title;
   final String subtitle;
   final WorkoutKind kind;
-}
-
-class _WorkoutCard extends StatelessWidget {
-  const _WorkoutCard({required this.data, required this.onTap});
-
-  final _WorkoutCardData data;
   final VoidCallback onTap;
 
   @override
@@ -328,7 +484,7 @@ class _WorkoutCard extends StatelessWidget {
               Container(
                 width: 5,
                 decoration: BoxDecoration(
-                  color: data.kind.color,
+                  color: kind.color,
                   borderRadius: const BorderRadius.horizontal(
                     left: Radius.circular(12),
                   ),
@@ -340,16 +496,27 @@ class _WorkoutCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        data.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.drag_indicator,
+                            size: 20,
+                            color: Colors.grey.shade400,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        data.subtitle,
+                        subtitle,
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 13,
