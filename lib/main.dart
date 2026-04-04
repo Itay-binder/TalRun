@@ -42,15 +42,38 @@ Future<void> main() async {
     return;
   }
 
-  await initializeDateFormatting('he_IL');
-  final appState = AppState();
-  await appState.load();
-  await Firebase.initializeApp();
-  // Provider עוטף את כל האפליקציה — נדרש למאמן/מתאמן ולמצב תכנית.
-  runApp(
-    ChangeNotifierProvider<AppState>.value(
-      value: appState,
-      child: const TalRunApp(),
-    ),
-  );
+  try {
+    await initializeDateFormatting('he_IL');
+    final appState = AppState();
+    await appState.load();
+    await Firebase.initializeApp();
+    // Provider עוטף את כל האפליקציה — נדרש למאמן/מתאמן ולמצב תכנית.
+    runApp(
+      ChangeNotifierProvider<AppState>.value(
+        value: appState,
+        child: const TalRunApp(),
+      ),
+    );
+  } catch (e, st) {
+    debugPrint('TalRun startup failed: $e\n$st');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: SelectableText(
+                  'שגיאת אתחול האפליקציה:\n\n$e\n\n'
+                  '(אם זה Firebase — ודאו google-services.json וחיבור רשת)',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(height: 1.35),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

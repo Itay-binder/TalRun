@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:talrun/router/go_router_refresh_stream.dart';
 import 'package:talrun/screens/activities/activities_screen.dart';
+import 'package:talrun/screens/activities/manual_activity_details_screen.dart';
+import 'package:talrun/screens/activities/manual_activity_kind.dart';
+import 'package:talrun/screens/activities/manual_activity_type_screen.dart';
 import 'package:talrun/screens/auth/sign_in_screen.dart';
 import 'package:talrun/screens/calendar/training_calendar_screen.dart';
 import 'package:talrun/screens/community/community_screen.dart';
@@ -107,6 +110,22 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final id = state.pathParameters['workoutId'] ?? '';
           return WorkoutDetailScreen(workoutId: id);
+        },
+      ),
+      GoRoute(
+        path: '/manual-activity/type',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const ManualActivityTypeScreen(),
+      ),
+      GoRoute(
+        path: '/manual-activity/details',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra;
+          final kind = extra is ManualActivityKind
+              ? extra
+              : ManualActivityKind.run;
+          return ManualActivityDetailsScreen(kind: kind);
         },
       ),
     ],
