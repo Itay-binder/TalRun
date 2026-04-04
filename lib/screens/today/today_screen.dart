@@ -1,34 +1,92 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:talrun/data/demo_trainee_plan.dart';
+import 'package:talrun/state/app_state.dart';
 import 'package:talrun/theme/workout_colors.dart';
+import 'package:talrun/state/user_role.dart';
+import 'package:talrun/utils/calendar_he.dart';
 import 'package:talrun/widgets/weekly_strip.dart';
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({super.key});
 
-  static const _hasPlan = true;
-  static const _weekCurrent = 3;
-  static const _weekTotal = 12;
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppState>();
+    if (app.role == UserRole.coach) {
+      return const _CoachTodayBody();
+    }
+    return const _TraineeTodayBody();
+  }
+}
+
+class _CoachTodayBody extends StatelessWidget {
+  const _CoachTodayBody();
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8F4FC),
+      appBar: AppBar(
+        title: const Text('היום'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'ממשק מאמן',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'כאן יוצגו המתאמנים, התכניות וההתקדמות שלהם. '
+                'בשלב זה זה מסך מקום — נחבר לנתונים (Firestore) בהמשך.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.black54,
+                      height: 1.4,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              FilledButton.tonal(
+                onPressed: () => context.push('/settings'),
+                child: const Text('הגדרות וסוג משתמש'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TraineeTodayBody extends StatelessWidget {
+  const _TraineeTodayBody();
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppState>();
     final user = FirebaseAuth.instance.currentUser;
     final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - DateTime.monday));
-    final labels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    final dayNumbers = List.generate(7, (i) => weekStart.add(Duration(days: i)).day);
-    final selectedIndex = (now.weekday - DateTime.monday).clamp(0, 6);
+    final weekStart = startOfWeekSunday(now);
+    final dayNumbers =
+        List.generate(7, (i) => weekStart.add(Duration(days: i)).day);
+    final selectedIndex = weekdayIndexFromSunday(now);
+    final markers = markersForTrainee(app.hasActivePlan);
+    final slot = app.hasActivePlan ? todaySlotFor(now) : null;
 
-    final markers = <List<WorkoutKind>>[
-      [WorkoutKind.run, WorkoutKind.strength],
-      [],
-      [],
-      [WorkoutKind.run],
-      [WorkoutKind.mobility],
-      [WorkoutKind.stretch],
-      [WorkoutKind.run],
-    ];
+    final headline = !app.hasActivePlan
+        ? 'אין תכנית פעילה'
+        : (slot == null ? 'יום מנוחה' : slot.title);
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4FC),
@@ -62,9 +120,9 @@ class TodayScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  if (_hasPlan) ...[
+                  if (app.hasActivePlan) ...[
                     Text(
-                      'WEEK $_weekCurrent/$_weekTotal',
+                      'שבוע $demoWeekCurrent/$demoWeekTotal',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
@@ -78,7 +136,7 @@ class TodayScreen extends StatelessWidget {
                   ] else
                     TextButton(
                       onPressed: () {
-                        /* TODO: צור תכנית */
+                        /* יצירת תכנית — בהמשך */
                       },
                       child: const Text('צור תכנית'),
                     ),
@@ -92,9 +150,10 @@ class TodayScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 elevation: 0,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                   child: WeeklyStrip(
-                    labels: labels,
+                    labels: kHebrewWeekdayShort,
                     dayNumbers: dayNumbers,
                     selectedIndex: selectedIndex,
                     markersByDayIndex: markers,
@@ -109,16 +168,39 @@ class TodayScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      _hasPlan
-                          ? 'מנוחה טובה, ${user?.displayName?.split(' ').first ?? 'רץ'}'
-                          : 'עדיין אין תכנית — צור תכנית כדי להתחיל',
+                      headline,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                     ),
+                    if (app.hasActivePlan &&
+                        slot != null &&
+                        slot.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        slot.subtitle,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.black54),
+                      ),
+                    ],
+                    if (!app.hasActivePlan) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'צור תכנית או בקש מהמאמן שלך שיישם לך תכנית — '
+                        'אז יופיעו כאן האימונים בשבוע.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.black54, height: 1.35),
+                      ),
+                    ],
                     const SizedBox(height: 16),
-                    if (_hasPlan)
+                    if (app.hasActivePlan && slot != null)
                       Material(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -133,24 +215,26 @@ class TodayScreen extends StatelessWidget {
                                   width: 4,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    color: WorkoutKind.run.color,
+                                    color: slot.kind.color,
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'אימון היום',
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleSmall
-                                            ?.copyWith(fontWeight: FontWeight.bold),
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold),
                                       ),
                                       Text(
-                                        'ריצה קלה • 5 ק״מ',
+                                        slot.title,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -159,7 +243,11 @@ class TodayScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.chevron_left),
+                                Icon(
+                                  Directionality.of(context) == TextDirection.rtl
+                                      ? Icons.chevron_left
+                                      : Icons.chevron_right,
+                                ),
                               ],
                             ),
                           ),
@@ -178,7 +266,7 @@ class TodayScreen extends StatelessWidget {
         child: SizedBox(
           width: MediaQuery.sizeOf(context).width - 32,
           child: FilledButton.icon(
-            onPressed: () => _showStartSheet(context),
+            onPressed: () => _showStartSheet(context, app.hasActivePlan),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
@@ -198,7 +286,7 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  void _showStartSheet(BuildContext context) {
+  void _showStartSheet(BuildContext context, bool hasPlan) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -212,17 +300,24 @@ class TodayScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.event_available),
                 title: const Text('אימון מהתכנית להיום'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.push('/workout/today');
-                },
+                enabled: hasPlan,
+                subtitle: hasPlan
+                    ? null
+                    : const Text('זמין כשיש תכנית פעילה',
+                        style: TextStyle(fontSize: 12)),
+                onTap: hasPlan
+                    ? () {
+                        Navigator.pop(ctx);
+                        ctx.push('/workout/today');
+                      }
+                    : null,
               ),
               ListTile(
                 leading: const Icon(Icons.fitness_center),
                 title: const Text('אימון חופשי'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/workout/free');
+                  ctx.push('/workout/free');
                 },
               ),
             ],

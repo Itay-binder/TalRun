@@ -6,9 +6,9 @@ class ActivitiesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Activities')),
+      appBar: AppBar(title: const Text('פעילות')),
       body: const Center(
-        child: Text('פעילויות — MVP'),
+        child: Text('היסטוריית אימונים והתקדמות — MVP'),
       ),
     );
   }

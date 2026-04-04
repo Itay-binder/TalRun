@@ -1,7 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
 import 'package:talrun/app.dart';
+import 'package:talrun/state/app_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +42,14 @@ Future<void> main() async {
     return;
   }
 
+  await initializeDateFormatting('he_IL');
+  final appState = AppState();
+  await appState.load();
   await Firebase.initializeApp();
-  runApp(const TalRunApp());
+  runApp(
+    ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: const TalRunApp(),
+    ),
+  );
 }

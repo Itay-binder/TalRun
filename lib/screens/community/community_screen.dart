@@ -6,7 +6,7 @@ class CommunityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Community')),
+      appBar: AppBar(title: const Text('קהילה')),
       body: const Center(
         child: Text('קהילה — MVP'),
       ),

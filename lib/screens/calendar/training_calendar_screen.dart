@@ -1,23 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:talrun/data/demo_trainee_plan.dart';
+import 'package:talrun/state/app_state.dart';
+import 'package:talrun/state/user_role.dart';
 import 'package:talrun/theme/workout_colors.dart';
+import 'package:talrun/utils/calendar_he.dart';
 
 class TrainingCalendarScreen extends StatelessWidget {
   const TrainingCalendarScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppState>();
+
+    if (app.role == UserRole.coach) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('לוח אימונים'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'ממשק מאמן: כאן יוצג לוח לפי מתאמן נבחר.\n'
+              'בשלב זה אין עדיין רשימת מתאמנים — נחבר ל-Firestore בהמשך.',
+              textAlign: TextAlign.center,
+              style: TextStyle(height: 1.4),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!app.hasActivePlan) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('לוח אימונים'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.event_busy, size: 56, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'אין תכנית פעילה',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'כשתהיה לך תכנית, השבועות והאימונים יופיעו כאן.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.black54, height: 1.35),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+    final weekStart = startOfWeekSunday(now);
+    final weekEnd = weekStart.add(const Duration(days: 6));
+    final rangeLabel =
+        '${DateFormat.MMMd('he_IL').format(weekStart)} – ${DateFormat.MMMd('he_IL').format(weekEnd)}';
+
+    final dayRows = List<Widget>.generate(7, (i) {
+      final day = weekStart.add(Duration(days: i));
+      final isToday = startOfLocalDay(day) == startOfLocalDay(now);
+      final slot = demoSlotBySunDay[i];
+      final workouts = slot == null
+          ? <_WorkoutCardData>[]
+          : [
+              _WorkoutCardData(slot.title, slot.subtitle, slot.kind),
+            ];
+
+      return _DayRow(
+        dayLabel: kHebrewWeekdayShort[i],
+        dayNum: day.day,
+        highlight: isToday,
+        workouts: workouts,
+      );
+    });
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Training calendar'),
+        title: const Text('לוח אימונים'),
         actions: [
           TextButton(
             onPressed: () {},
-            child: const Text('Save'),
+            child: const Text('שמור'),
           ),
         ],
       ),
@@ -25,27 +120,11 @@ class TrainingCalendarScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _WeekBlock(
-            rangeLabel: '30 Mar - 5 Apr',
-            weekLabel: 'WEEK 3',
-            totalDone: '16.7 km',
-            totalGoal: '19.5 km',
-            days: [
-              _DayRow(
-                dayLabel: 'MON',
-                dayNum: 30,
-                workouts: [
-                  _WorkoutCardData('Hill Repeats', '7.5 km • 50m', WorkoutKind.run),
-                ],
-              ),
-              _DayRow(
-                dayLabel: 'SAT',
-                dayNum: 4,
-                highlight: true,
-                workouts: [
-                  _WorkoutCardData('ריצה', '5 km', WorkoutKind.run),
-                ],
-              ),
-            ],
+            rangeLabel: rangeLabel,
+            weekLabel: 'שבוע $demoWeekCurrent',
+            totalDone: '16.7 ק״מ',
+            totalGoal: '19.5 ק״מ',
+            days: dayRows,
           ),
           const SizedBox(height: 24),
           Text(
@@ -89,8 +168,12 @@ class _WeekBlock extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(rangeLabel,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Flexible(
+                        child: Text(
+                          rangeLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -112,8 +195,9 @@ class _WeekBlock extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Total: $totalDone / $totalGoal',
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                    'סה״כ: $totalDone / $totalGoal',
+                    style:
+                        const TextStyle(color: Colors.black54, fontSize: 13),
                   ),
                 ],
               ),
@@ -121,7 +205,7 @@ class _WeekBlock extends StatelessWidget {
             TextButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Reset'),
+              label: const Text('איפוס'),
             ),
           ],
         ),
@@ -156,9 +240,10 @@ class _DayRow extends StatelessWidget {
             width: 44,
             child: Column(
               children: [
-                Text(dayLabel,
-                    style: const TextStyle(
-                        fontSize: 11, color: Colors.black45)),
+                Text(
+                  dayLabel,
+                  style: const TextStyle(fontSize: 11, color: Colors.black45),
+                ),
                 const SizedBox(height: 4),
                 Container(
                   width: 32,
@@ -181,17 +266,31 @@ class _DayRow extends StatelessWidget {
           ),
           Expanded(
             child: Column(
-              children: workouts
-                  .map(
-                    (w) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _WorkoutCard(
-                        data: w,
-                        onTap: () => context.push('/workout/${w.title.hashCode}'),
+              children: workouts.isEmpty
+                  ? [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'יום מנוחה',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    ]
+                  : workouts
+                      .map(
+                        (w) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _WorkoutCard(
+                            data: w,
+                            onTap: () => context
+                                .push('/workout/${w.title.hashCode}'),
+                          ),
+                        ),
+                      )
+                      .toList(),
             ),
           ),
         ],
