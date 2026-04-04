@@ -139,7 +139,7 @@ class _TraineeWellnessMoodCardState extends State<TraineeWellnessMoodCard> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.sick_rounded,
+                    Icons.sentiment_very_dissatisfied_rounded,
                     size: 36,
                     color: Color.lerp(_sickColor, Colors.grey, 1 - _mood)!
                         .withValues(alpha: 0.85 + 0.15 * (1 - _mood)),
