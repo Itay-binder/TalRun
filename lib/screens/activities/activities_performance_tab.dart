@@ -14,18 +14,35 @@ class ActivitiesPerformanceTab extends StatefulWidget {
 }
 
 class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
+  /// תצוגת נפח: עמודות שבועיות מול חודשיות.
   String _viewBy = 'שבוע';
+
+  /// מרחק לגרף מגמת הקצב.
+  DemoTrendDistance _trendDistance = DemoTrendDistance.km5;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final summary = demoCurrentWeekSummary();
-    final weekly = demoWeeklyKmSeries();
-    final trend = demoPaceTrend();
+    final summary = _viewBy == 'שבוע'
+        ? demoCurrentWeekSummary()
+        : demoCurrentMonthSummary();
+    final volumeBars = _viewBy == 'שבוע'
+        ? demoWeeklyVolumeSeries()
+        : demoMonthlyVolumeSeries();
+    final trend = demoPaceTrendFor(_trendDistance);
     final prs = demoPersonalRecords();
     final races = demoRaceResults();
 
-    final maxKm = weekly.map((e) => e.km).reduce(math.max) * 1.15;
+    final maxKm = volumeBars.map((e) => e.km).reduce(math.max) * 1.12;
+    final gridIntervalKm = maxKm > 90 ? 20.0 : (maxKm > 45 ? 10.0 : 5.0);
+
+    final paceMin = trend.map((e) => e.avgPaceMinPerKm).reduce(math.min);
+    final paceMax = trend.map((e) => e.avgPaceMinPerKm).reduce(math.max);
+    final pad = math.max(0.06, (paceMax - paceMin) * 0.35);
+    final chartMinY = paceMin - pad;
+    final chartMaxY = paceMax + pad;
+    final paceAxisInterval =
+        ((chartMaxY - chartMinY) / 5).clamp(0.05, 0.5);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -86,12 +103,14 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
         ),
         const SizedBox(height: 20),
         Text(
-          'קילומטראז׳ שבועי',
+          _viewBy == 'שבוע' ? 'קילומטראז׳ שבועי' : 'קילומטראז׳ חודשי',
           style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
-          'סה״כ ק״מ לכל שבוע מאז תחילת האימונים (דמו).',
+          _viewBy == 'שבוע'
+              ? 'סה״כ ק״מ בכל שבוע (דמו). החליפו ל״חודש״ לסיכום חודשי בעמודות.'
+              : 'סה״כ ק״מ בכל חודש (דמו). החליפו ל״שבוע״ לפירוט שבוע־אחר־שבוע.',
           style: t.bodySmall?.copyWith(color: Colors.black45, height: 1.3),
         ),
         const SizedBox(height: 12),
@@ -114,13 +133,13 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                         reservedSize: 36,
                         getTitlesWidget: (value, meta) {
                           final i = value.toInt();
-                          if (i < 0 || i >= weekly.length) {
+                          if (i < 0 || i >= volumeBars.length) {
                             return const SizedBox.shrink();
                           }
                           return Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                              weekly[i].weekStartLabel,
+                              volumeBars[i].label,
                               style: const TextStyle(fontSize: 9),
                               textAlign: TextAlign.center,
                             ),
@@ -132,7 +151,7 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 36,
-                        interval: maxKm > 25 ? 10 : 5,
+                        interval: gridIntervalKm,
                         getTitlesWidget: (value, meta) => Text(
                           '${value.toInt()}',
                           style: const TextStyle(fontSize: 10),
@@ -145,11 +164,11 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: maxKm > 25 ? 10 : 5,
+                    horizontalInterval: gridIntervalKm,
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: List.generate(weekly.length, (i) {
-                    final w = weekly[i];
+                  barGroups: List.generate(volumeBars.length, (i) {
+                    final w = volumeBars[i];
                     return BarChartGroupData(
                       x: i,
                       barRods: [
@@ -173,10 +192,35 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
         ),
         const SizedBox(height: 24),
         Text(
-          'מגמת שיפור — קצב 5K (דקות, נמוך יותר = טוב יותר)',
+          'מגמת שיפור — קצב לפי ${_trendDistance.labelHe}',
           style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+        Text(
+          'דקות ממוצעות לק״מ לפי חודש; קו יורד = שיפור (דמו).',
+          style: t.bodySmall?.copyWith(color: Colors.black45, height: 1.3),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: DemoTrendDistance.values.map((d) {
+            final selected = _trendDistance == d;
+            return ChoiceChip(
+              label: Text(d.labelHe),
+              selected: selected,
+              onSelected: (v) {
+                if (v) setState(() => _trendDistance = d);
+              },
+              selectedColor: const Color(0xFF00897B).withValues(alpha: 0.25),
+              labelStyle: TextStyle(
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 13,
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
         SizedBox(
           height: 200,
           child: Card(
@@ -187,8 +231,8 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                 LineChartData(
                   minX: 0,
                   maxX: (trend.length - 1).toDouble(),
-                  minY: 4.6,
-                  maxY: 5.15,
+                  minY: chartMinY,
+                  maxY: chartMaxY,
                   gridData: FlGridData(show: true, drawVerticalLine: false),
                   borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
@@ -202,7 +246,7 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                             return const SizedBox.shrink();
                           }
                           return Text(
-                            trend[i].monthLabel,
+                            trend[i].periodLabel,
                             style: const TextStyle(fontSize: 10),
                           );
                         },
@@ -211,8 +255,8 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 32,
-                        interval: 0.1,
+                        reservedSize: 36,
+                        interval: paceAxisInterval,
                         getTitlesWidget: (value, meta) => Text(
                           value.toStringAsFixed(2),
                           style: const TextStyle(fontSize: 9),
@@ -226,7 +270,10 @@ class _ActivitiesPerformanceTabState extends State<ActivitiesPerformanceTab> {
                     LineChartBarData(
                       spots: List.generate(
                         trend.length,
-                        (i) => FlSpot(i.toDouble(), trend[i].pace5kMinutes),
+                        (i) => FlSpot(
+                          i.toDouble(),
+                          trend[i].avgPaceMinPerKm,
+                        ),
                       ),
                       isCurved: true,
                       color: const Color(0xFF00897B),

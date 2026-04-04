@@ -57,19 +57,32 @@ class DemoRaceResult {
   final String category;
 }
 
-/// נקודה בגרף שיפור (קצב ממוצע ל־5K בדקות).
+/// נקודה בגרף שיפור — קצב ממוצע בדקות לק״מ (נמוך = טוב יותר).
 class DemoPaceTrendPoint {
-  const DemoPaceTrendPoint(this.monthLabel, this.pace5kMinutes);
+  const DemoPaceTrendPoint(this.periodLabel, this.avgPaceMinPerKm);
 
-  final String monthLabel;
-  final double pace5kMinutes;
+  final String periodLabel;
+  final double avgPaceMinPerKm;
 }
 
-/// שבוע + קילומטראז׳.
-class DemoWeeklyKm {
-  const DemoWeeklyKm(this.weekStartLabel, this.km, {this.highlight = false});
+/// מרחק לבחירה במגמת שיפור (דמו).
+enum DemoTrendDistance {
+  km5(5.0, '5 ק״מ'),
+  km10(10.0, '10 ק״מ'),
+  km15(15.0, '15 ק״מ'),
+  kmHalf(21.1, 'חצי מרתון');
 
-  final String weekStartLabel;
+  const DemoTrendDistance(this.kmValue, this.labelHe);
+
+  final double kmValue;
+  final String labelHe;
+}
+
+/// עמודת נפח (שבוע או חודש) — ק״מ מצטבר.
+class DemoVolumeBar {
+  const DemoVolumeBar(this.label, this.km, {this.highlight = false});
+
+  final String label;
   final double km;
   final bool highlight;
 }
@@ -187,24 +200,58 @@ List<DemoRaceResult> demoRaceResults() {
   ];
 }
 
-List<DemoPaceTrendPoint> demoPaceTrend() {
+/// מגמת קצב לפי מרחק (דמו — חודשים זהים, ערכי קצב שונים).
+List<DemoPaceTrendPoint> demoPaceTrendFor(DemoTrendDistance d) {
+  return switch (d) {
+    DemoTrendDistance.km5 => const [
+        DemoPaceTrendPoint('ינו׳', 5.05),
+        DemoPaceTrendPoint('פבר׳', 4.95),
+        DemoPaceTrendPoint('מרץ', 4.88),
+        DemoPaceTrendPoint('אפר׳', 4.82),
+      ],
+    DemoTrendDistance.km10 => const [
+        DemoPaceTrendPoint('ינו׳', 5.38),
+        DemoPaceTrendPoint('פבר׳', 5.24),
+        DemoPaceTrendPoint('מרץ', 5.14),
+        DemoPaceTrendPoint('אפר׳', 5.06),
+      ],
+    DemoTrendDistance.km15 => const [
+        DemoPaceTrendPoint('ינו׳', 5.58),
+        DemoPaceTrendPoint('פבר׳', 5.48),
+        DemoPaceTrendPoint('מרץ', 5.38),
+        DemoPaceTrendPoint('אפר׳', 5.30),
+      ],
+    DemoTrendDistance.kmHalf => const [
+        DemoPaceTrendPoint('ינו׳', 5.82),
+        DemoPaceTrendPoint('פבר׳', 5.72),
+        DemoPaceTrendPoint('מרץ', 5.62),
+        DemoPaceTrendPoint('אפר׳', 5.52),
+      ],
+  };
+}
+
+/// קילומטראז׳ שבועי (כל עמודה = שבוע).
+List<DemoVolumeBar> demoWeeklyVolumeSeries() {
   return const [
-    DemoPaceTrendPoint('ינו׳', 5.05),
-    DemoPaceTrendPoint('פבר׳', 4.95),
-    DemoPaceTrendPoint('מרץ', 4.88),
-    DemoPaceTrendPoint('אפר׳', 4.82),
+    DemoVolumeBar('16 בפבר׳', 18),
+    DemoVolumeBar('23 בפבר׳', 22),
+    DemoVolumeBar('2 במרץ', 25),
+    DemoVolumeBar('9 במרץ', 20),
+    DemoVolumeBar('16 במרץ', 28),
+    DemoVolumeBar('23 במרץ', 24),
+    DemoVolumeBar('30 במרץ', 16.68, highlight: true),
   ];
 }
 
-List<DemoWeeklyKm> demoWeeklyKmSeries() {
-  return [
-    const DemoWeeklyKm('16 בפבר׳', 18),
-    const DemoWeeklyKm('23 בפבר׳', 22),
-    const DemoWeeklyKm('2 במרץ', 25),
-    const DemoWeeklyKm('9 במרץ', 20),
-    const DemoWeeklyKm('16 במרץ', 28),
-    const DemoWeeklyKm('23 במרץ', 24),
-    const DemoWeeklyKm('30 במרץ', 16.68, highlight: true),
+/// קילומטראז׳ חודשי (כל עמודה = חודש שלם).
+List<DemoVolumeBar> demoMonthlyVolumeSeries() {
+  return const [
+    DemoVolumeBar('נוב׳ 25', 72),
+    DemoVolumeBar('דצמ׳ 25', 88),
+    DemoVolumeBar('ינו׳ 26', 95),
+    DemoVolumeBar('פבר׳ 26', 102),
+    DemoVolumeBar('מרץ 26', 118),
+    DemoVolumeBar('אפר׳ 26', 42, highlight: true),
   ];
 }
 
@@ -229,6 +276,16 @@ DemoWeekPerformanceSummary demoCurrentWeekSummary() {
     km: 16.68,
     time: const Duration(hours: 1, minutes: 50, seconds: 46),
     activityCount: 3,
+  );
+}
+
+/// סיכום חודש נוכחי (דמו) — כשהתצוגה היא לפי חודש.
+DemoWeekPerformanceSummary demoCurrentMonthSummary() {
+  return DemoWeekPerformanceSummary(
+    rangeLabel: 'אפריל 2026',
+    km: 42,
+    time: const Duration(hours: 5, minutes: 12, seconds: 10),
+    activityCount: 9,
   );
 }
 
