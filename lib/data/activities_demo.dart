@@ -11,6 +11,10 @@ class DemoActivity {
     required this.avgPaceSecPerKm,
     required this.accent,
     required this.source,
+    this.notes,
+    this.avgHeartRate,
+    this.calories,
+    this.elevationGainM,
   });
 
   final String id;
@@ -21,6 +25,28 @@ class DemoActivity {
   final int avgPaceSecPerKm;
   final Color accent;
   final String source;
+
+  /// טקסט חופשי לפירוט מסך האימון.
+  final String? notes;
+
+  /// דופק ממוצע (אופציונלי).
+  final int? avgHeartRate;
+
+  /// קלוריות משוערות.
+  final int? calories;
+
+  /// עלייה מצטברת במטרים (ריצה).
+  final int? elevationGainM;
+
+  bool get hasDistance => distanceKm > 0;
+}
+
+/// חיפוש פעילות לפי מזהה (דמו / עתיד: Firestore).
+DemoActivity? demoActivityById(String id) {
+  for (final a in demoActivitiesList()) {
+    if (a.id == id) return a;
+  }
+  return null;
 }
 
 /// שיא אישי (דמו).
@@ -98,6 +124,12 @@ List<DemoActivity> demoActivitiesList() {
       avgPaceSecPerKm: 6 * 60 + 28,
       accent: const Color(0xFF7E57C2),
       source: 'Garmin Forerunner 235',
+      notes:
+          'בלוק ארוך בקצב יציב. 2 ק״מ חימום, 5 ק״מ בקצב מטרה, 200 מ׳ ריצה קלה. '
+          'מרגיש טוב — לשמור על אותו קצב בשבוע הבא.',
+      avgHeartRate: 148,
+      calories: 520,
+      elevationGainM: 42,
     ),
     DemoActivity(
       id: 'a2',
@@ -108,6 +140,10 @@ List<DemoActivity> demoActivitiesList() {
       avgPaceSecPerKm: 6 * 60 + 30,
       accent: const Color(0xFF2E7D32),
       source: 'Strava',
+      notes: 'ריצת בוקר קלה. ללא כאבים.',
+      avgHeartRate: 132,
+      calories: 310,
+      elevationGainM: 18,
     ),
     DemoActivity(
       id: 'a3',
@@ -118,6 +154,9 @@ List<DemoActivity> demoActivitiesList() {
       avgPaceSecPerKm: 0,
       accent: const Color(0xFF0288D1),
       source: 'הזנה ידנית',
+      notes:
+          'סקוואט, דלגים, כפיפות בטן, ישבן. 3 סטים לתרגיל — משקל בינוני.',
+      calories: 180,
     ),
   ];
 }
