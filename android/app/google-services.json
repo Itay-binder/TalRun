@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "286923597286",
+    "project_id": "talrun-e52db",
+    "storage_bucket": "talrun-e52db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:286923597286:android:54c374d37ebc37ff73e227",
+        "android_client_info": {
+          "package_name": "com.tal.talrun"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "286923597286-jbpktktr4b9chpifv2rp07vtgpv7ef9p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKKUEU5lSZyAlsw4Lyl2jfFfwxLssQNjk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "286923597286-jbpktktr4b9chpifv2rp07vtgpv7ef9p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
