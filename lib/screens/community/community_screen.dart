@@ -7,8 +7,18 @@ class CommunityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('קהילה')),
-      body: const Center(
-        child: Text('קהילה — MVP'),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'בקרוב…',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.black54,
+                  height: 1.4,
+                ),
+          ),
+        ),
       ),
     );
   }

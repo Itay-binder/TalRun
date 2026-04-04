@@ -85,13 +85,6 @@ class _TraineeActivitiesBody extends StatelessWidget {
                             : null,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        /* התראות — בהמשך */
-                      },
-                      icon: const Icon(Icons.notifications_outlined),
-                      tooltip: 'התראות',
-                    ),
                     Expanded(
                       child: Text(
                         'פעילות',
