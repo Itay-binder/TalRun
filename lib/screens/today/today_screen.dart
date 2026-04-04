@@ -7,6 +7,7 @@ import 'package:talrun/state/app_state.dart';
 import 'package:talrun/theme/workout_colors.dart';
 import 'package:talrun/state/user_role.dart';
 import 'package:talrun/utils/calendar_he.dart';
+import 'package:talrun/widgets/trainee_wellness_mood_card.dart';
 import 'package:talrun/widgets/weekly_strip.dart';
 
 class TodayScreen extends StatelessWidget {
@@ -83,10 +84,6 @@ class _TraineeTodayBody extends StatelessWidget {
     final selectedIndex = weekdayIndexFromSunday(now);
     final markers = markersForTrainee(app.hasActivePlan);
     final slot = app.hasActivePlan ? todaySlotFor(now) : null;
-
-    final headline = !app.hasActivePlan
-        ? 'אין תכנית פעילה'
-        : (slot == null ? 'יום מנוחה' : slot.title);
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8F4FC),
@@ -167,25 +164,50 @@ class _TraineeTodayBody extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      headline,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    if (app.hasActivePlan &&
-                        slot != null &&
-                        slot.subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                    if (!app.hasActivePlan)
                       Text(
-                        slot.subtitle,
+                        'אין תכנית פעילה',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: Colors.black54),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      )
+                    else if (slot == null) ...[
+                      Text(
+                        'יום מנוחה',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
+                    ] else ...[
+                      Text(
+                        'אימון להיום',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Colors.black45,
+                              letterSpacing: 0.2,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        slot.title,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      if (slot.subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          slot.subtitle,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.black54),
+                        ),
+                      ],
                     ],
                     if (!app.hasActivePlan) ...[
                       const SizedBox(height: 12),
@@ -199,6 +221,8 @@ class _TraineeTodayBody extends StatelessWidget {
                             ?.copyWith(color: Colors.black54, height: 1.35),
                       ),
                     ],
+                    const SizedBox(height: 20),
+                    const TraineeWellnessMoodCard(),
                     const SizedBox(height: 16),
                     if (app.hasActivePlan && slot != null)
                       Material(
