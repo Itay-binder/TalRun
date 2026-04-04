@@ -17,7 +17,8 @@ class AppState extends ChangeNotifier {
     if (ri != null && ri >= 0 && ri < UserRole.values.length) {
       role = UserRole.values[ri];
     }
-    hasActivePlan = p.getBool(_keyPlan) ?? false;
+    // ברירת מחדל true כדי שלא ייראה שהאפליקציה "ריקה" אחרי התקנה (ניתן לכבות בהגדרות).
+    hasActivePlan = p.getBool(_keyPlan) ?? true;
     notifyListeners();
   }
 

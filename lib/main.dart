@@ -46,6 +46,7 @@ Future<void> main() async {
   final appState = AppState();
   await appState.load();
   await Firebase.initializeApp();
+  // Provider עוטף את כל האפליקציה — נדרש למאמן/מתאמן ולמצב תכנית.
   runApp(
     ChangeNotifierProvider<AppState>.value(
       value: appState,
