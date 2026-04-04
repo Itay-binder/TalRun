@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,14 @@ import 'package:talrun/state/user_role.dart';
 import 'package:talrun/theme/workout_colors.dart';
 import 'package:talrun/utils/calendar_he.dart';
 
+/// מסך לוח האימונים בכיוון LTR (ימי השבוע משמאל לימין), בלי לשנות את שאר האפליקציה.
+Widget _wrapTrainingCalendarLtr(Widget child) {
+  return Directionality(
+    textDirection: ui.TextDirection.ltr,
+    child: child,
+  );
+}
+
 class TrainingCalendarScreen extends StatelessWidget {
   const TrainingCalendarScreen({super.key});
 
@@ -16,22 +26,24 @@ class TrainingCalendarScreen extends StatelessWidget {
     final app = context.watch<AppState>();
 
     if (app.role == UserRole.coach) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+      return _wrapTrainingCalendarLtr(
+        Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+            title: const Text('לוח אימונים'),
           ),
-          title: const Text('לוח אימונים'),
-        ),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'ממשק מאמן: כאן יוצג לוח לפי מתאמן נבחר.\n'
-              'בשלב זה אין עדיין רשימת מתאמנים — נחבר ל-Firestore בהמשך.',
-              textAlign: TextAlign.center,
-              style: TextStyle(height: 1.4),
+          body: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'ממשק מאמן: כאן יוצג לוח לפי מתאמן נבחר.\n'
+                'בשלב זה אין עדיין רשימת מתאמנים — נחבר ל-Firestore בהמשך.',
+                textAlign: TextAlign.center,
+                style: TextStyle(height: 1.4),
+              ),
             ),
           ),
         ),
@@ -39,39 +51,41 @@ class TrainingCalendarScreen extends StatelessWidget {
     }
 
     if (!app.hasActivePlan) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+      return _wrapTrainingCalendarLtr(
+        Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+            title: const Text('לוח אימונים'),
           ),
-          title: const Text('לוח אימונים'),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.event_busy, size: 56, color: Colors.grey.shade400),
-                const SizedBox(height: 16),
-                Text(
-                  'אין תכנית פעילה',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'כשתהיה לך תכנית, השבועות והאימונים יופיעו כאן.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.black54, height: 1.35),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy, size: 56, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  Text(
+                    'אין תכנית פעילה',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'כשתהיה לך תכנית, השבועות והאימונים יופיעו כאן.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: Colors.black54, height: 1.35),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -159,47 +173,49 @@ class _TraineeDragCalendarState extends State<_TraineeDragCalendar> {
     final rangeLabel =
         '${DateFormat.MMMd('he_IL').format(weekStart)} – ${DateFormat.MMMd('he_IL').format(weekEnd)}';
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    return _wrapTrainingCalendarLtr(
+      Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('לוח אימונים'),
         ),
-        title: const Text('לוח אימונים'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _WeekHeader(
-            rangeLabel: rangeLabel,
-            weekLabel: 'שבוע $demoWeekCurrent',
-            totalDone: '16.7 ק״מ',
-            totalGoal: '19.5 ק״מ',
-            onReset: _resetWeek,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'לחיצה ארוכה על כרטיס אימון ואז גרירה ליום אחר. השינוי נשמר מיד במסך '
-            '(בהמשך: סנכרון לענן).',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.black45),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          for (var i = 0; i < 7; i++)
-            _DayDropRow(
-              dayLabel: kHebrewWeekdayShort[i],
-              dayNum: weekStart.add(Duration(days: i)).day,
-              highlight: startOfLocalDay(weekStart.add(Duration(days: i))) ==
-                  startOfLocalDay(now),
-              items: _byDay[i],
-              onAccept: (item) => _moveToDay(item, i),
-              onCardTap: (item) =>
-                  context.push('/workout/${item.title.hashCode}'),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _WeekHeader(
+              rangeLabel: rangeLabel,
+              weekLabel: 'שבוע $demoWeekCurrent',
+              totalDone: '16.7 ק״מ',
+              totalGoal: '19.5 ק״מ',
+              onReset: _resetWeek,
             ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'לחיצה ארוכה על כרטיס אימון ואז גרירה ליום אחר. השינוי נשמר מיד במסך '
+              '(בהמשך: סנכרון לענן).',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.black45),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < 7; i++)
+              _DayDropRow(
+                dayLabel: kHebrewWeekdayShort[i],
+                dayNum: weekStart.add(Duration(days: i)).day,
+                highlight: startOfLocalDay(weekStart.add(Duration(days: i))) ==
+                    startOfLocalDay(now),
+                items: _byDay[i],
+                onAccept: (item) => _moveToDay(item, i),
+                onCardTap: (item) =>
+                    context.push('/workout/${item.title.hashCode}'),
+              ),
+          ],
+        ),
       ),
     );
   }
