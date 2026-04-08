@@ -7,10 +7,14 @@ import {
   type User,
 } from "firebase/auth";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
+  where,
 } from "firebase/firestore";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { auth, db, firebaseConfigured, googleProvider } from "@/lib/firebase";
@@ -22,6 +26,8 @@ type AuthContextValue = {
   role: Role;
   loading: boolean;
   firebaseConfigured: boolean;
+  coachAllowed: boolean;
+  accessDeniedMessage: string | null;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -32,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(firebaseConfigured);
+  const [coachAllowed, setCoachAllowed] = useState(false);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!firebaseConfigured || !auth || !db) {
@@ -45,6 +55,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
       if (!nextUser) {
         setRole(null);
+        setCoachAllowed(false);
+        setAccessDeniedMessage(null);
+        setLoading(false);
+        return;
+      }
+
+      const wlByUid = await getDoc(doc(dbClient, "coach_whitelist", nextUser.uid));
+      let allowed = wlByUid.exists();
+      if (!allowed && nextUser.email) {
+        const q = query(
+          collection(dbClient, "coach_whitelist"),
+          where("emailLower", "==", nextUser.email.toLowerCase()),
+        );
+        const qs = await getDocs(q);
+        allowed = !qs.empty;
+      }
+      if (!allowed) {
+        setRole(null);
+        setCoachAllowed(false);
+        setAccessDeniedMessage(
+          "החשבון לא מורשה כמאמן. פנה לאדמין כדי להצטרף ל-whitelist.",
+        );
+        await signOut(authClient);
         setLoading(false);
         return;
       }
@@ -62,9 +95,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           updatedAt: serverTimestamp(),
         });
         setRole("coach");
+        setCoachAllowed(true);
+        setAccessDeniedMessage(null);
       } else {
-        const nextRole = (snap.data().role as Role) ?? "coach";
+        const nextRole = (snap.data().role as Role) ?? null;
         setRole(nextRole);
+        setCoachAllowed(nextRole == "coach");
+        setAccessDeniedMessage(
+          nextRole == "coach"
+              ? null
+              : "החשבון קיים אך role אינו coach. עדכן users/{uid}.role ל-coach.",
+        );
       }
       setLoading(false);
     });
@@ -78,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role,
       loading,
       firebaseConfigured,
+      coachAllowed,
+      accessDeniedMessage,
       loginWithGoogle: async () => {
         if (!auth || !googleProvider) {
           throw new Error("Firebase config is missing.");
@@ -89,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signOut(auth);
       },
     }),
-    [user, role, loading],
+    [user, role, loading, coachAllowed, accessDeniedMessage],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

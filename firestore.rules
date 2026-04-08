@@ -10,13 +10,10 @@ service cloud.firestore {
       return request.auth.uid;
     }
 
-    function userDoc(uid) {
-      return get(/databases/$(database)/documents/users/$(uid));
-    }
-
     function requesterRole() {
-      return isSignedIn() && userDoc(requesterUid()).exists()
-        ? userDoc(requesterUid()).data.role
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(requesterUid()))
+        ? get(/databases/$(database)/documents/users/$(requesterUid())).data.role
         : null;
     }
 
@@ -44,8 +41,10 @@ service cloud.firestore {
       return isCoach() && requesterUid() == coachId && hasCoachLink(coachId, traineeId);
     }
 
-    function canReadTraineeData(traineeId) {
-      return isSelf(traineeId) || isCoachOf(requesterUid(), traineeId);
+    // Whitelist for coach dashboard login approval.
+    match /coach_whitelist/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     match /users/{uid} {
@@ -83,6 +82,31 @@ service cloud.firestore {
         request.resource.data.coachId == resource.data.coachId &&
         request.resource.data.traineeId == resource.data.traineeId &&
         request.resource.data.status in ['active', 'ended'];
+
+      allow delete: if false;
+    }
+
+    // Invite flow: coach creates pending invite by trainee email.
+    match /coach_invites/{inviteId} {
+      allow read: if isSignedIn() && (
+        resource.data.coachId == requesterUid() ||
+        (request.auth.token.email is string &&
+          resource.data.traineeEmail == request.auth.token.email)
+      );
+
+      allow create: if isCoach() &&
+        request.resource.data.coachId == requesterUid() &&
+        request.resource.data.traineeEmail is string &&
+        request.resource.data.status == "pending";
+
+      allow update: if isSignedIn() && (
+        // coach can cancel/edit own invite
+        (resource.data.coachId == requesterUid() &&
+          request.resource.data.coachId == resource.data.coachId) ||
+        // invited trainee can accept by email match
+        ((request.auth.token.email is string) &&
+          resource.data.traineeEmail == request.auth.token.email)
+      );
 
       allow delete: if false;
     }

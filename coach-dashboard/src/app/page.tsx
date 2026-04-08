@@ -4,8 +4,16 @@ import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 
 export default function HomePage() {
-  const { user, role, loading, firebaseConfigured, loginWithGoogle, logout } =
-    useAuth();
+  const {
+    user,
+    role,
+    loading,
+    firebaseConfigured,
+    coachAllowed,
+    accessDeniedMessage,
+    loginWithGoogle,
+    logout,
+  } = useAuth();
 
   if (loading) {
     return (
@@ -16,14 +24,14 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-bold tracking-tight">TalRun Coach Dashboard</h1>
+    <main className="min-h-screen bg-slate-100">
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <h1 className="text-3xl font-bold tracking-tight">TalRun - ממשק מאמנים</h1>
         <p className="mt-2 text-zinc-600">
-          Google login for coaches. Next step: trainees list, plan builder, weekly unlock.
+          התחברות Google והרשאת coach בלבד. לאחר כניסה, מעבר לדשבורד האישי.
         </p>
 
-        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
           {!firebaseConfigured && (
             <div className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
               Firebase Web env vars are missing. Set them in
@@ -33,40 +41,46 @@ export default function HomePage() {
               (and Vercel env settings).
             </div>
           )}
+          {accessDeniedMessage && (
+            <div className="mb-5 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+              {accessDeniedMessage}
+            </div>
+          )}
           {!user ? (
             <>
-              <h2 className="text-lg font-semibold">Sign in</h2>
+              <h2 className="text-lg font-semibold">כניסת מאמן</h2>
               <p className="mt-1 text-sm text-zinc-600">
-                Sign in with Google. A first-time user is created as role = coach.
+                הכניסה פתוחה רק למאמנים שמופיעים ב-`coach_whitelist`.
               </p>
               <button
                 onClick={() => void loginWithGoogle()}
                 disabled={!firebaseConfigured}
-                className="mt-4 rounded-lg bg-black px-4 py-2 text-white hover:bg-zinc-800"
+                className="mt-4 rounded-xl bg-black px-5 py-2.5 text-white hover:bg-zinc-800 disabled:bg-zinc-400"
               >
-                Continue with Google
+                כניסה עם Google
               </button>
             </>
           ) : (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-semibold">Signed in</h2>
+                <h2 className="text-lg font-semibold">מחובר כעת</h2>
                 <p className="text-sm text-zinc-600">
-                  {user.email} · role: <strong>{role ?? "unknown"}</strong>
+                  {user.email} · role: <strong>{role ?? "unknown"}</strong>{" "}
+                  {coachAllowed ? "✅" : "⛔"}
                 </p>
               </div>
               <div className="flex gap-3">
                 <Link
                   href="/trainees"
-                  className="rounded-lg bg-emerald-700 px-4 py-2 text-white hover:bg-emerald-600"
+                  className="rounded-xl bg-emerald-700 px-5 py-2.5 text-white hover:bg-emerald-600"
                 >
-                  Open trainees dashboard
+                  כניסה לדשבורד מאמן
                 </Link>
                 <button
                   onClick={() => void logout()}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 hover:bg-zinc-100"
+                  className="rounded-xl border border-zinc-300 px-5 py-2.5 hover:bg-zinc-100"
                 >
-                  Log out
+                  התנתק
                 </button>
               </div>
             </div>
