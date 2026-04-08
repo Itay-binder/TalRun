@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 
 export default function HomePage() {
+  const router = useRouter();
   const {
     user,
-    role,
     loading,
     firebaseConfigured,
     coachAllowed,
@@ -15,10 +16,15 @@ export default function HomePage() {
     logout,
   } = useAuth();
 
+  useEffect(() => {
+    if (loading || !user || !coachAllowed) return;
+    router.replace("/dashboard");
+  }, [loading, user, coachAllowed, router]);
+
   if (loading) {
     return (
       <main className="min-h-screen grid place-items-center bg-zinc-50">
-        <p className="text-zinc-600">Loading dashboard...</p>
+        <p className="text-zinc-600">בודק הרשאות...</p>
       </main>
     );
   }
@@ -28,7 +34,7 @@ export default function HomePage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <h1 className="text-3xl font-bold tracking-tight">TalRun - ממשק מאמנים</h1>
         <p className="mt-2 text-zinc-600">
-          התחברות Google והרשאת coach בלבד. לאחר כניסה, מעבר לדשבורד האישי.
+          התחברות Google והרשאת מאמן בלבד. לאחר אימות תועבר אוטומטית לדשבורד.
         </p>
 
         <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
@@ -50,7 +56,7 @@ export default function HomePage() {
             <>
               <h2 className="text-lg font-semibold">כניסת מאמן</h2>
               <p className="mt-1 text-sm text-zinc-600">
-                הכניסה פתוחה רק למאמנים שמופיעים ב-`coach_whitelist`.
+                הכניסה פתוחה רק למאמנים שמופיעים ב־<code className="text-xs">coach_whitelist</code>.
               </p>
               <button
                 onClick={() => void loginWithGoogle()}
@@ -60,30 +66,22 @@ export default function HomePage() {
                 כניסה עם Google
               </button>
             </>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">מחובר כעת</h2>
-                <p className="text-sm text-zinc-600">
-                  {user.email} · role: <strong>{role ?? "unknown"}</strong>{" "}
-                  {coachAllowed ? "✅" : "⛔"}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Link
-                  href="/trainees"
-                  className="rounded-xl bg-emerald-700 px-5 py-2.5 text-white hover:bg-emerald-600"
-                >
-                  כניסה לדשבורד מאמן
-                </Link>
-                <button
-                  onClick={() => void logout()}
-                  className="rounded-xl border border-zinc-300 px-5 py-2.5 hover:bg-zinc-100"
-                >
-                  התנתק
-                </button>
-              </div>
+          ) : !coachAllowed ? (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">אין גישה</h2>
+              <p className="text-sm text-zinc-600">
+                החשבון מחובר אך לא כמאמן מורשה. אם לדעתך זו טעות, פנה לאדמין.
+              </p>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="rounded-xl border border-zinc-300 px-5 py-2.5 text-sm hover:bg-zinc-50"
+              >
+                התנתק
+              </button>
             </div>
+          ) : (
+            <p className="text-sm text-zinc-600">מעביר לדשבורד...</p>
           )}
         </section>
       </div>
