@@ -18,7 +18,7 @@ export default function TraineePlanPage({
 }: {
   params: { uid: string };
 }) {
-  const { user, role, loading, coachAllowed } = useAuth();
+  const { user } = useAuth();
   const [planId, setPlanId] = useState<string | null>(null);
   const [planTitle, setPlanTitle] = useState("תכנית אישית");
   const [weeksTotal, setWeeksTotal] = useState(12);
@@ -29,8 +29,6 @@ export default function TraineePlanPage({
   const [newKind, setNewKind] = useState("run");
   const [newDay, setNewDay] = useState(1);
   const [busy, setBusy] = useState(true);
-
-  const canUse = !!user && role === "coach" && coachAllowed;
 
   const refreshPlan = useCallback(async () => {
     if (!user) return;
@@ -57,7 +55,7 @@ export default function TraineePlanPage({
   }, [params.uid, user]);
 
   useEffect(() => {
-    if (!canUse) return;
+    if (!user) return;
     void (async () => {
       setBusy(true);
       try {
@@ -66,7 +64,7 @@ export default function TraineePlanPage({
         setBusy(false);
       }
     })();
-  }, [canUse, refreshPlan]);
+  }, [user, refreshPlan]);
 
   const selectedWeek = useMemo(
     () => weeks.find((w) => w.id === selectedWeekDoc) ?? null,
@@ -116,21 +114,18 @@ export default function TraineePlanPage({
     setWorkouts(ws);
   }
 
-  if (loading || busy) {
-    return <main className="min-h-screen grid place-items-center">Loading...</main>;
-  }
-  if (!canUse) {
+  if (busy) {
     return (
-      <main className="min-h-screen grid place-items-center bg-slate-100 p-6 text-center">
-        <p>אין הרשאה לדף זה.</p>
+      <main className="min-h-full grid place-items-center bg-slate-100 p-8">
+        <p className="text-sm text-zinc-500">טוען...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <div className="mb-5 flex items-center justify-between">
+    <main className="min-h-full bg-slate-100 p-4 sm:p-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">ניהול תכנית מתאמן</h1>
           <Link
             href={`/trainees/${params.uid}`}
@@ -160,6 +155,7 @@ export default function TraineePlanPage({
               />
             </div>
             <button
+              type="button"
               onClick={() => void onCreatePlan()}
               className="mt-4 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-600"
             >
@@ -181,8 +177,9 @@ export default function TraineePlanPage({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <button
+                        type="button"
                         onClick={() => void onSelectWeek(w.id)}
-                        className="text-left text-sm font-medium hover:underline"
+                        className="text-right text-sm font-medium hover:underline"
                       >
                         שבוע {w.weekIndex}
                       </button>
@@ -192,6 +189,7 @@ export default function TraineePlanPage({
                         </span>
                       ) : (
                         <button
+                          type="button"
                           onClick={() => void onUnlock(w)}
                           className="rounded-lg border border-emerald-300 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50"
                         >
@@ -235,6 +233,7 @@ export default function TraineePlanPage({
                 />
               </div>
               <button
+                type="button"
                 onClick={() => void onAddWorkout()}
                 disabled={!selectedWeekDoc}
                 className="mt-3 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:bg-zinc-400"

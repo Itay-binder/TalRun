@@ -70,6 +70,19 @@ export async function createCoachInvite(coachId: string, traineeEmail: string) {
   return code;
 }
 
+export async function loadCoachInviteStats(
+  coachId: string,
+): Promise<{ pending: number }> {
+  const dbClient = requireDb();
+  const q = query(
+    collection(dbClient, "coach_invites"),
+    where("coachId", "==", coachId),
+    where("status", "==", "pending"),
+  );
+  const snap = await getDocs(q);
+  return { pending: snap.size };
+}
+
 function cryptoRandomCode() {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 }

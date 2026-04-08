@@ -16,16 +16,14 @@ export default function TraineeDetailsPage({
 }: {
   params: { uid: string };
 }) {
-  const { user, role, loading, coachAllowed } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<TraineeProfile | null>(null);
   const [plan, setPlan] = useState<CoachPlan | null>(null);
   const [linkStatus, setLinkStatus] = useState<"active" | "ended" | "none">("none");
   const [busy, setBusy] = useState(true);
 
-  const canUse = !!user && role === "coach" && coachAllowed;
-
   useEffect(() => {
-    if (!canUse) return;
+    if (!user) return;
     void (async () => {
       setBusy(true);
       try {
@@ -41,7 +39,7 @@ export default function TraineeDetailsPage({
         setBusy(false);
       }
     })();
-  }, [canUse, params.uid, user]);
+  }, [params.uid, user]);
 
   async function onEndLink() {
     if (!user) return;
@@ -49,22 +47,18 @@ export default function TraineeDetailsPage({
     setLinkStatus("ended");
   }
 
-  if (loading || busy) {
-    return <main className="min-h-screen grid place-items-center">Loading...</main>;
-  }
-
-  if (!canUse) {
+  if (busy) {
     return (
-      <main className="min-h-screen grid place-items-center bg-slate-100 p-6 text-center">
-        <p>אין הרשאה לדף זה.</p>
+      <main className="min-h-full grid place-items-center bg-slate-100 p-8">
+        <p className="text-sm text-zinc-500">טוען...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-        <div className="mb-5 flex items-center justify-between">
+    <main className="min-h-full bg-slate-100 p-4 sm:p-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">{profile?.displayName ?? "מתאמן"}</h1>
             <p className="text-sm text-zinc-600">{profile?.email ?? ""}</p>
@@ -114,6 +108,7 @@ export default function TraineeDetailsPage({
             <h2 className="text-lg font-semibold">פעולות מהירות</h2>
             <div className="mt-3 space-y-2">
               <button
+                type="button"
                 onClick={() => void onEndLink()}
                 className="w-full rounded-xl border border-rose-300 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50"
                 disabled={linkStatus !== "active"}
