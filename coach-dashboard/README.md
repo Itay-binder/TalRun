@@ -28,6 +28,20 @@ Set these in Vercel Project Settings -> Environment Variables:
 - Placeholder trainees dashboard
 
 Next steps are listed in `../backend-docs/backend-blueprint.md`.
+
+## Coach whitelist doc format
+
+Collection: `coach_whitelist`
+
+You can approve coaches by:
+- document id = coach UID (recommended), or
+- any id + `emailLower`
+
+Fields (supported):
+- `emailLower` (string, lowercase email)
+- `active` (boolean, default `true` if missing)
+- `displayName` (optional, used on first user creation)
+- `notes` (optional, shown after login)
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

@@ -20,6 +20,13 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { auth, db, firebaseConfigured, googleProvider } from "@/lib/firebase";
 
 type Role = "coach" | "trainee" | null;
+type WhitelistData = {
+  active?: boolean;
+  emailLower?: string;
+  email?: string;
+  displayName?: string;
+  notes?: string;
+};
 
 type AuthContextValue = {
   user: User | null;
@@ -61,21 +68,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      let whitelistData: WhitelistData | null = null;
       const wlByUid = await getDoc(doc(dbClient, "coach_whitelist", nextUser.uid));
-      let allowed = wlByUid.exists();
-      if (!allowed && nextUser.email) {
+      if (wlByUid.exists()) {
+        whitelistData = wlByUid.data() as WhitelistData;
+      } else if (nextUser.email) {
         const q = query(
           collection(dbClient, "coach_whitelist"),
           where("emailLower", "==", nextUser.email.toLowerCase()),
         );
         const qs = await getDocs(q);
-        allowed = !qs.empty;
+        if (!qs.empty) {
+          whitelistData = qs.docs[0].data() as WhitelistData;
+        }
       }
+      if (!whitelistData && nextUser.email) {
+        // backward compatibility: old docs may use `email` instead of `emailLower`
+        const q = query(
+          collection(dbClient, "coach_whitelist"),
+          where("email", "==", nextUser.email.toLowerCase()),
+        );
+        const qs = await getDocs(q);
+        if (!qs.empty) {
+          whitelistData = qs.docs[0].data() as WhitelistData;
+        }
+      }
+
+      const allowedByWhitelist = Boolean(whitelistData);
+      const active = whitelistData?.active ?? true;
+      const allowed = allowedByWhitelist && active;
+
       if (!allowed) {
         setRole(null);
         setCoachAllowed(false);
         setAccessDeniedMessage(
-          "החשבון לא מורשה כמאמן. פנה לאדמין כדי להצטרף ל-whitelist.",
+          allowedByWhitelist
+            ? "החשבון ברשימת מאמנים אבל לא פעיל כרגע. פנה לאדמין להפעלה."
+            : "החשבון לא מורשה כמאמן. פנה לאדמין כדי להצטרף ל-whitelist.",
         );
         await signOut(authClient);
         setLoading(false);
@@ -86,25 +115,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const snap = await getDoc(userRef);
 
       if (!snap.exists()) {
+        const preferredName =
+          whitelistData?.displayName?.trim() ||
+          nextUser.displayName ||
+          "";
         await setDoc(userRef, {
           role: "coach",
           email: nextUser.email ?? "",
-          displayName: nextUser.displayName ?? "",
+          displayName: preferredName,
           photoUrl: nextUser.photoURL ?? "",
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
         setRole("coach");
         setCoachAllowed(true);
-        setAccessDeniedMessage(null);
+        setAccessDeniedMessage(
+          whitelistData?.notes?.trim() ? `הערת אדמין: ${whitelistData.notes}` : null,
+        );
       } else {
         const nextRole = (snap.data().role as Role) ?? null;
         setRole(nextRole);
         setCoachAllowed(nextRole == "coach");
         setAccessDeniedMessage(
           nextRole == "coach"
-              ? null
-              : "החשבון קיים אך role אינו coach. עדכן users/{uid}.role ל-coach.",
+            ? whitelistData?.notes?.trim()
+              ? `הערת אדמין: ${whitelistData.notes}`
+              : null
+            : "החשבון קיים אך role אינו coach. עדכן users/{uid}.role ל-coach.",
         );
       }
       setLoading(false);
