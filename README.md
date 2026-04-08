@@ -1,16 +1,27 @@
 # talrun
 
-A new Flutter project.
+TalRun app (Flutter + Firebase) for trainees and coaches.
 
-## Getting Started
+## Firebase setup (Firestore + rules)
 
-This project is a starting point for a Flutter application.
+This repo now includes:
+- `firebase.json`
+- `firestore.rules`
+- `firestore.indexes.json`
+- `backend-docs/backend-blueprint.md`
 
-A few resources to get you started if this is your first Flutter project:
+### Deploy Firestore rules/indexes
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. Install Firebase CLI (once):
+   - `npm i -g firebase-tools`
+2. Login:
+   - `firebase login`
+3. Select your project:
+   - `firebase use --add`
+4. Deploy:
+   - `firebase deploy --only firestore:rules,firestore:indexes`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Coach dashboard recommendation
+
+Use a separate Next.js app on Vercel with Firebase Auth (Google) and role checks (`users.role == "coach"`).
+See `backend-docs/backend-blueprint.md` for data model and relationship lifecycle (coach-trainee linking, weekly unlock, ended relationships).

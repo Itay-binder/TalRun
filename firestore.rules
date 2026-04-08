@@ -1,0 +1,165 @@
+﻿rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function requesterUid() {
+      return request.auth.uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function requesterRole() {
+      return isSignedIn() && userDoc(requesterUid()).exists()
+        ? userDoc(requesterUid()).data.role
+        : null;
+    }
+
+    function isCoach() {
+      return requesterRole() == 'coach';
+    }
+
+    function isTrainee() {
+      return requesterRole() == 'trainee';
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && requesterUid() == uid;
+    }
+
+    function linkId(coachId, traineeId) {
+      return coachId + '_' + traineeId;
+    }
+
+    function hasCoachLink(coachId, traineeId) {
+      return exists(/databases/$(database)/documents/coach_trainees/$(linkId(coachId, traineeId)));
+    }
+
+    function isCoachOf(coachId, traineeId) {
+      return isCoach() && requesterUid() == coachId && hasCoachLink(coachId, traineeId);
+    }
+
+    function canReadTraineeData(traineeId) {
+      return isSelf(traineeId) || isCoachOf(requesterUid(), traineeId);
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || (isCoach() && hasCoachLink(requesterUid(), uid));
+
+      allow create: if isSelf(uid);
+
+      // Self: update profile safely.
+      // Coach: update only tracked metrics for assigned trainee.
+      allow update: if (
+        isSelf(uid) &&
+        request.resource.data.role == resource.data.role
+      ) || (
+        isCoach() && hasCoachLink(requesterUid(), uid)
+      );
+
+      allow delete: if false;
+    }
+
+    // מאמן ↔ מתאמן (שיוך)
+    // doc id = "{coachId}_{traineeId}"
+    match /coach_trainees/{linkDocId} {
+      allow read: if isSignedIn() && (
+        resource.data.coachId == requesterUid() ||
+        resource.data.traineeId == requesterUid()
+      );
+
+      allow create: if isCoach() &&
+        request.resource.data.coachId == requesterUid() &&
+        request.resource.data.status in ['active', 'ended'] &&
+        request.resource.data.traineeId is string;
+
+      allow update: if isCoach() &&
+        resource.data.coachId == requesterUid() &&
+        request.resource.data.coachId == resource.data.coachId &&
+        request.resource.data.traineeId == resource.data.traineeId &&
+        request.resource.data.status in ['active', 'ended'];
+
+      allow delete: if false;
+    }
+
+    // תכניות
+    match /plans/{planId} {
+      allow read: if isSignedIn() && (
+        resource.data.traineeId == requesterUid() ||
+        (isCoach() && resource.data.coachId == requesterUid() && hasCoachLink(requesterUid(), resource.data.traineeId))
+      );
+
+      allow create: if isCoach() &&
+        request.resource.data.coachId == requesterUid() &&
+        request.resource.data.traineeId is string &&
+        hasCoachLink(requesterUid(), request.resource.data.traineeId);
+
+      allow update: if isCoach() &&
+        resource.data.coachId == requesterUid() &&
+        hasCoachLink(requesterUid(), resource.data.traineeId) &&
+        request.resource.data.coachId == resource.data.coachId &&
+        request.resource.data.traineeId == resource.data.traineeId;
+
+      allow delete: if false;
+
+      match /weeks/{weekId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/plans/$(planId)).data.traineeId == requesterUid() ||
+          (isCoach() && get(/databases/$(database)/documents/plans/$(planId)).data.coachId == requesterUid())
+        );
+
+        allow create, update: if isCoach() &&
+          get(/databases/$(database)/documents/plans/$(planId)).data.coachId == requesterUid();
+
+        allow delete: if false;
+
+        match /workouts/{workoutId} {
+          allow read: if isSignedIn() && (
+            get(/databases/$(database)/documents/plans/$(planId)).data.traineeId == requesterUid() ||
+            (isCoach() && get(/databases/$(database)/documents/plans/$(planId)).data.coachId == requesterUid())
+          );
+
+          // Coach controls planning and lock/open.
+          allow create, update: if isCoach() &&
+            get(/databases/$(database)/documents/plans/$(planId)).data.coachId == requesterUid();
+
+          // Trainee יכול לסמן completion בלבד.
+          allow update: if isTrainee() &&
+            get(/databases/$(database)/documents/plans/$(planId)).data.traineeId == requesterUid() &&
+            request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              'status', 'completedAt', 'activityId', 'updatedAt'
+            ]);
+
+          allow delete: if false;
+        }
+      }
+    }
+
+    // פעילויות מבוצעות
+    match /activities/{activityId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == requesterUid() ||
+        (isCoach() && hasCoachLink(requesterUid(), resource.data.userId))
+      );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == requesterUid();
+
+      allow update: if isSignedIn() &&
+        resource.data.userId == requesterUid() &&
+        request.resource.data.userId == resource.data.userId;
+
+      allow delete: if false;
+    }
+
+    // ברירת מחדל: חסימה מוחלטת.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
